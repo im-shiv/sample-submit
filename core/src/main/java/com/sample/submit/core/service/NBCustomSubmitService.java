@@ -38,6 +38,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @Component(service = FormSubmitActionService.class, immediate = true)
@@ -57,7 +58,7 @@ public class NBCustomSubmitService implements FormSubmitActionService {
     private OutputService pdfOutputService;
 
     @Reference
-    private GuideModelTransformer guideModelTransformer;
+    private volatile GuideModelTransformer guideModelTransformer;
 
     @Override
     public String getServiceName() {
@@ -78,12 +79,12 @@ public class NBCustomSubmitService implements FormSubmitActionService {
 
             if (StringUtils.isNotEmpty(dorType) && StringUtils.equalsIgnoreCase(dorType, "select") && StringUtils.isNotEmpty(dorTemplateRef)) {
                 if( StringUtils.isNotEmpty(locale) ) {
-                    dorTemplateRef = dorTemplateRef.replace("en", locale);
+                    dorTemplateRef = dorTemplateRef.replace("_en", "_" + locale.substring(0, 2));
                 }
                 final String finalDorTemplateRef = dorTemplateRef;
                 final String newDorData = dorData;
                 byte[] pdfContent = resourceResolverHelper.callWith(resourceResolver, () -> getPdfFromXfaDom(finalDorTemplateRef, newDorData));
-                String pdfName = formContainerResource.getValueMap().get("title", String.class);
+                String pdfName = "dor.pdf";
                 formSubmitInfo.setDocumentOfRecord(new FileAttachmentWrapper(pdfName, "application/pdf", pdfContent));
             }
             result = restSubmit(formContainerResource, resourceResolver, formSubmitInfo);
@@ -105,6 +106,7 @@ public class NBCustomSubmitService implements FormSubmitActionService {
         JSONCreationOptions jsonCreationOptions = new JSONCreationOptions();
         jsonCreationOptions.setFormContainerPath(formContainerResource.getPath());
         jsonCreationOptions.setIncludeFragmentJson(true);
+        jsonCreationOptions.setLocale(new Locale("en", "")); // Default locale, can be changed based on requirements
         JSONObject guideJSON = guideModelTransformer.exportGuideJsonObject(formContainerResource, jsonCreationOptions);
         return GuideModelUtils.getDataForDORMerge(dorDoc, dataDoc, guideJSON);
     }
