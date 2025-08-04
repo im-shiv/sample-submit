@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:granite="http://www.adobe.com/jcr/granite/1.0" xmlns:cq="http://www.day.com/jcr/cq/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+          jcr:primaryType="nt:unstructured"
+          jcr:title="NB REST ENDPOINT"
+          sling:resourceType="cq/gui/components/authoring/dialog"
+          extraClientlibs="[af.authoring.dialog]">
+    <content
+            jcr:primaryType="nt:unstructured"
+            jcr:title="NB REST Endpoint"
+            sling:resourceType="granite/ui/components/coral/foundation/container">
+        <items jcr:primaryType="nt:unstructured">
+            <postUrl
+                    jcr:primaryType="nt:unstructured"
+                    jcr:mixinTypes="[granite:InternalArea]"
+                    sling:resourceType="granite/ui/components/coral/foundation/form/textfield"
+                    fieldDescription="Enter the URL of a remote server as (http://&lt;host&gt;:&lt;port&gt;/path/to/resource). For posting to the local AEM server that is serving the Form, enter the path to the resource."
+                    fieldLabel="URL For POST request"
+                    name="./postUrl"/>
+        </items>
+    </content>
+</jcr:root>

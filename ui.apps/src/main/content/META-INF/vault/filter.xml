@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workspaceFilter version="1.0">
+    <filter root="/apps/sample-submit/clientlibs"/>
+    <filter root="/apps/sample-submit/components"/>
+    <filter root="/apps/sample-submit/i18n"/>
+    <filter root="/apps/fd/af/theme-clientlibs" mode="merge"/>
+
+</workspaceFilter>
