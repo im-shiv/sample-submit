@@ -41,6 +41,23 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Custom form submission service for handling Document of Record (DoR) generation and REST submissions
+ * 
+ * @description This service extends the Adobe Forms service to provide custom form submission functionality.
+ * It handles the generation of Document of Record PDFs using XFA templates and submits form data
+ * to external REST endpoints. The service supports locale-specific template resolution and
+ * comprehensive error handling for robust form processing.
+ * 
+ * <p>The service performs the following key operations:</p>
+ * <ul>
+ *   <li>Processes form data and generates Document of Record XML</li>
+ *   <li>Resolves locale-specific XFA templates from JCR</li>
+ *   <li>Generates PDF documents using Adobe Output Service</li>
+ *   <li>Submits form data and attachments to configured REST endpoints</li>
+ *   <li>Provides comprehensive logging and error handling</li>
+ * </ul>
+ */
 @Component(service = FormSubmitActionService.class, immediate = true)
 public class NBCustomSubmitService implements FormSubmitActionService {
 
@@ -65,6 +82,27 @@ public class NBCustomSubmitService implements FormSubmitActionService {
         return serviceName;
     }
 
+    /**
+     * Main form submission method that processes form data and generates Document of Record
+     * 
+     * @description This method is the primary entry point for form submissions. It processes
+     * the submitted form data, generates Document of Record XML, resolves locale-specific
+     * templates, generates PDF documents, and submits data to configured REST endpoints.
+     * 
+     * <p>The method performs the following steps:</p>
+     * <ol>
+     *   <li>Extracts form configuration and data</li>
+     *   <li>Processes form data for Document of Record generation</li>
+     *   <li>Resolves and validates locale-specific templates</li>
+     *   <li>Generates PDF using Adobe Output Service</li>
+     *   <li>Submits data to REST endpoint</li>
+     * </ol>
+     * 
+     * @param formSubmitInfo The form submission information containing data and configuration
+     * @return Map containing submission results and status information
+     * 
+     * @throws RuntimeException if critical errors occur during processing
+     */
     @Override
     public Map<String, Object> submit(FormSubmitInfo formSubmitInfo) {
         Map<String, Object> result = new HashMap<>();
@@ -72,19 +110,15 @@ public class NBCustomSubmitService implements FormSubmitActionService {
             Resource formContainerResource = formSubmitInfo.getFormContainerResource();
             ResourceResolver resourceResolver = formContainerResource.getResourceResolver();
             String dorType = formContainerResource.getValueMap().get("dorType", String.class);
-            String dorTemplateRef = formContainerResource.getValueMap().get("dorTemplateRef", String.class);
             String locale = formSubmitInfo.getLocale();
-            String data = formSubmitInfo.getData();
-            String dorData = processDorData(data, formContainerResource);
+            String dorData = processDorData(formSubmitInfo.getData(), formContainerResource);
+            String dorTemplateRef = processDorTemplateRef(formContainerResource.getValueMap().get("dorTemplateRef", String.class), locale, resourceResolver);
 
-            if (StringUtils.isNotEmpty(dorType) && StringUtils.equalsIgnoreCase(dorType, "select") && StringUtils.isNotEmpty(dorTemplateRef)) {
-                if( StringUtils.isNotEmpty(locale) ) {
-                    dorTemplateRef = dorTemplateRef.replace("_en", "_" + locale.substring(0, 2));
-                }
+            if (StringUtils.isNotBlank(dorType) && StringUtils.equalsIgnoreCase(dorType, "select") && StringUtils.isNotBlank(dorTemplateRef)) {
                 final String finalDorTemplateRef = dorTemplateRef;
-                final String newDorData = dorData;
-                byte[] pdfContent = resourceResolverHelper.callWith(resourceResolver, () -> getPdfFromXfaDom(finalDorTemplateRef, newDorData));
-                String pdfName = "dor.pdf";
+                final String finalDorData = dorData;
+                byte[] pdfContent = resourceResolverHelper.callWith(resourceResolver, () -> getPdfFromXfaDom(finalDorTemplateRef, finalDorData));
+                String pdfName = "dor_" + locale + ".pdf";
                 formSubmitInfo.setDocumentOfRecord(new FileAttachmentWrapper(pdfName, "application/pdf", pdfContent));
             }
             result = restSubmit(formContainerResource, resourceResolver, formSubmitInfo);
@@ -94,6 +128,20 @@ public class NBCustomSubmitService implements FormSubmitActionService {
         return result;
     }
 
+    /**
+     * Processes form data to generate Document of Record XML
+     * 
+     * @description This method transforms the submitted form data into a format suitable
+     * for Document of Record generation. It parses the XML data, creates a new document
+     * structure, and merges the form data with the guide model configuration.
+     * 
+     * @param data The raw form data as XML string
+     * @param formContainerResource The form container resource containing configuration
+     * @return Processed Document of Record data as XML string
+     * @throws ParserConfigurationException if XML parser configuration fails
+     * @throws IOException if data reading/writing fails
+     * @throws SAXException if XML parsing fails
+     */
     private String processDorData(String data, Resource formContainerResource) throws ParserConfigurationException, IOException, SAXException {
         //We need to get the bound part from the data xml and use it to generate the pdf.
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -111,6 +159,18 @@ public class NBCustomSubmitService implements FormSubmitActionService {
         return GuideModelUtils.getDataForDORMerge(dorDoc, dataDoc, guideJSON);
     }
 
+    /**
+     * Submits form data to configured REST endpoint
+     * 
+     * @description This method handles the REST submission of form data and attachments
+     * to the configured endpoint. It creates a multipart HTTP request containing
+     * the form data, XML data, and PDF attachment (if generated).
+     * 
+     * @param formContainerResource The form container resource containing configuration
+     * @param resourceResolver The resource resolver for JCR operations
+     * @param formSubmitInfo The form submission information
+     * @return Map containing submission results and status
+     */
     private Map<String, Object> restSubmit(Resource formContainerResource, ResourceResolver resourceResolver, FormSubmitInfo formSubmitInfo) {
         Map<String, Object> result = new HashMap<>();
         result.put(GuideConstants.FORM_SUBMISSION_COMPLETE, Boolean.FALSE);
@@ -156,6 +216,20 @@ public class NBCustomSubmitService implements FormSubmitActionService {
         return result;
     }
 
+    /**
+     * Generates PDF from XFA template and data using Adobe Output Service
+     * 
+     * @description This method uses the Adobe Output Service to generate PDF documents
+     * from XFA templates and XML data. It sets up the content root and output options
+     * for proper PDF generation.
+     * 
+     * @param xdpRef The XFA template reference path
+     * @param data The XML data to merge with the template
+     * @return Byte array containing the generated PDF content, or null if generation fails
+     * @throws OutputServiceException if PDF generation fails
+     * @throws IOException if data processing fails
+     * 
+     */
     private byte[] getPdfFromXfaDom(String xdpRef, String data) throws OutputServiceException, IOException {
         if (xdpRef != null && xdpRef.length() > 0) {
             String contentRootTemp = StringUtils.substringBeforeLast(xdpRef, ".xdp");
@@ -174,5 +248,54 @@ public class NBCustomSubmitService implements FormSubmitActionService {
             logger.error("No XDP present");
         }
         return null;
+    }
+
+    /**
+     * Processes and validates the Document of Record template reference
+     * 
+     * @description This method takes a template reference and processes it based on the locale.
+     * It first attempts to find the localized version of the template (replacing "_en" with 
+     * the locale-specific suffix), then falls back to the original template if the localized 
+     * version doesn't exist in JCR.
+     * 
+     * @param templateRef The original template reference path (e.g., "/content/dam/formsanddocuments/template_en.xdp")
+     * @param locale The locale string (e.g., "en", "af", "fr") used for template localization
+     * @param resourceResolver The resource resolver to access JCR and check resource existence
+     * @return The validated template reference path if found in JCR, null otherwise
+     * 
+     * @example
+     * // For locale "af" and template "/content/dam/formsanddocuments/template_en.xdp"
+     * // Returns: "/content/dam/formsanddocuments/template_af.xdp" if it exists
+     * // Falls back to: "/content/dam/formsanddocuments/template_en.xdp" if localized version doesn't exist
+     * // Returns: null if neither exists
+     * 
+     * @note This method performs JCR existence checks and handles locale-specific template resolution
+     */
+    private String processDorTemplateRef(String templateRef, String locale, ResourceResolver resourceResolver) {
+        if (StringUtils.isBlank(templateRef) || resourceResolver == null) {
+            return null;
+        }
+        try {
+            String jcrPath = templateRef;
+            if( StringUtils.isNotBlank(locale) ) {
+                jcrPath = jcrPath.replace("_en", "_" + locale.substring(0, 2));
+            }
+//            if (jcrPath.endsWith(".xdp")) {
+//                jcrPath = jcrPath.substring(0, jcrPath.length() - 4);
+//            }
+            
+            // Check if the resource exists in JCR
+            if (resourceResolver.getResource(jcrPath) != null) {
+                logger.debug("[AF] [Submit] Document found in JCR: {}", jcrPath);
+                return jcrPath;
+            } else if (resourceResolver.getResource(templateRef) != null) {
+                return templateRef;
+            } else {
+                return null;
+            }
+        } catch (Exception e) {
+            logger.error("[AF] [Submit] Error checking document existence in JCR for path: {}", templateRef, e);
+            return null;
+        }
     }
 }
