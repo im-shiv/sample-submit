@@ -112,7 +112,7 @@ public class NBCustomSubmitService implements FormSubmitActionService {
             String dorType = formContainerResource.getValueMap().get("dorType", String.class);
             String locale = formSubmitInfo.getLocale();
             String dorData = processDorData(formSubmitInfo.getData(), formContainerResource);
-            String dorTemplateRef = processDorTemplateRef(formContainerResource.getValueMap().get("dorTemplateRef", String.class), locale, resourceResolver);
+            String dorTemplateRef = processDorTemplateRef(formContainerResource.getValueMap().get("dorTemplateRef", String.class), locale, resourceResolver, formContainerResource);
 
             if (StringUtils.isNotBlank(dorType) && StringUtils.equalsIgnoreCase(dorType, "select") && StringUtils.isNotBlank(dorTemplateRef)) {
                 final String finalDorTemplateRef = dorTemplateRef;
@@ -258,9 +258,10 @@ public class NBCustomSubmitService implements FormSubmitActionService {
      * the locale-specific suffix), then falls back to the original template if the localized 
      * version doesn't exist in JCR.
      * 
-     * @param templateRef The original template reference path (e.g., "/content/dam/formsanddocuments/template_en.xdp")
+     * @param defaultTemplateRef The original template reference path (e.g., "/content/dam/formsanddocuments/template_en.xdp")
      * @param locale The locale string (e.g., "en", "af", "fr") used for template localization
      * @param resourceResolver The resource resolver to access JCR and check resource existence
+     * @param formContainerResource The form container resource containing configuration
      * @return The validated template reference path if found in JCR, null otherwise
      * 
      * @example
@@ -271,30 +272,31 @@ public class NBCustomSubmitService implements FormSubmitActionService {
      * 
      * @note This method performs JCR existence checks and handles locale-specific template resolution
      */
-    private String processDorTemplateRef(String templateRef, String locale, ResourceResolver resourceResolver) {
-        if (StringUtils.isBlank(templateRef) || resourceResolver == null) {
+    private String processDorTemplateRef(String defaultTemplateRef, String locale, ResourceResolver resourceResolver, Resource formContainerResource) {
+        if (StringUtils.isBlank(defaultTemplateRef) || resourceResolver == null || formContainerResource == null || formContainerResource.getParent() == null) {
             return null;
         }
         try {
-            String jcrPath = templateRef;
-            if( StringUtils.isNotBlank(locale) ) {
-                jcrPath = jcrPath.replace("_en", "_" + locale.substring(0, 2));
+            String defaultLocale = formContainerResource.getParent().getValueMap().get("jcr:language", String.class);
+            if (StringUtils.isBlank(defaultLocale)) {
+                defaultLocale = "en"; // Default to English if no locale is provided
             }
-//            if (jcrPath.endsWith(".xdp")) {
-//                jcrPath = jcrPath.substring(0, jcrPath.length() - 4);
-//            }
-            
+            String localeTemplateRef = defaultTemplateRef;
+            if( StringUtils.isNotBlank(locale) ) {
+                localeTemplateRef = localeTemplateRef.replace("_" + defaultLocale, "_" + locale.substring(0, 2));
+            }
+
             // Check if the resource exists in JCR
-            if (resourceResolver.getResource(jcrPath) != null) {
-                logger.debug("[AF] [Submit] Document found in JCR: {}", jcrPath);
-                return jcrPath;
-            } else if (resourceResolver.getResource(templateRef) != null) {
-                return templateRef;
+            if (resourceResolver.getResource(localeTemplateRef) != null) {
+                logger.debug("[AF] [Submit] Document found in JCR: {}", localeTemplateRef);
+                return localeTemplateRef;
+            } else if (resourceResolver.getResource(defaultTemplateRef) != null) {
+                return defaultTemplateRef;
             } else {
                 return null;
             }
         } catch (Exception e) {
-            logger.error("[AF] [Submit] Error checking document existence in JCR for path: {}", templateRef, e);
+            logger.error("[AF] [Submit] Error checking document existence in JCR for path: {}", defaultTemplateRef, e);
             return null;
         }
     }

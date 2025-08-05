@@ -40,7 +40,7 @@ function getURL() {
  * 
  * @returns {void}
  * 
- * @note This function is asynchronous. The data is stored in sessionStorage with key 'formData'
+ * @note This function is asynchronous. The data is stored in sessionStorage with key 'formData guideContainerPath'
  */
 function storeFormState() {
 	var jsonData;
@@ -52,7 +52,7 @@ function storeFormState() {
              console.log("error retrieving form data");
          }
     });
-    sessionStorage.setItem('formData', JSON.stringify(jsonData));
+    sessionStorage.setItem(guideBridge.getAutoSaveInfo()['jcr:path'], JSON.stringify(jsonData));
 }
 
 /**
@@ -67,14 +67,14 @@ function storeFormState() {
  * @note This function automatically clears the stored data after retrieval
  */
 function prefillDataFromSessionStorage() {
-    const storedData = sessionStorage.getItem('formData');
+    const storedData = sessionStorage.getItem(guideBridge.getAutoSaveInfo()['jcr:path']);
     
     if (storedData) {
         const myData = JSON.parse(storedData);
         //console.log('Received data:', myData);
         
         //clear the data after retrieving it
-        sessionStorage.removeItem('formData');
+        sessionStorage.removeItem(guideBridge.getAutoSaveInfo()['jcr:path']);
         guideBridge.setData({
              guideState : myData.guideState,
              error : function (guideResultObject) {
@@ -87,11 +87,47 @@ function prefillDataFromSessionStorage() {
 /**
  * Clears stored form data from session storage
  * 
- * @description This function removes the 'formData' key from sessionStorage,
+ * @description This function removes the 'formData guideContainerPath' key from sessionStorage,
  * effectively clearing any previously stored form state.
  * 
  * @returns {void}
+ * 
+ * @example
+ * // Clear stored form data
+ * clearSession();
  */
 function clearSession() {
-	sessionStorage.removeItem('formData');
+    autoSave.stop(); // Stop the polling before clearing session storage
+	sessionStorage.removeItem(guideBridge.getAutoSaveInfo()['jcr:path']);
 }
+
+/**
+ * Starts polling storeFormState() every 5 seconds
+ * 
+ * @description This function creates a polling mechanism that calls storeFormState()
+ * every 10 seconds to continuously save the current form state to session storage.
+ * 
+ * @returns {Object} Object with stop() method to stop the polling
+ * 
+ * @example
+ * // Start polling
+ * var formStatePoller = startFormStatePolling();
+ * 
+ * // Stop polling when needed
+ * formStatePoller.stop();
+ * 
+ * @note The polling will continue until stop() is called
+ */
+function startFormStatePolling() {
+    var intervalId = setInterval(function() {
+        storeFormState();
+    }, 5000); // 5 seconds
+    
+    return {
+        stop: function() {
+            clearInterval(intervalId);
+        }
+    };
+}
+
+var autoSave = startFormStatePolling();
