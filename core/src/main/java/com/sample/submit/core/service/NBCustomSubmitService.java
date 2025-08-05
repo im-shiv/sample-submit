@@ -208,10 +208,6 @@ public class NBCustomSubmitService implements FormSubmitActionService {
             }
         } catch (Exception e) {
             logger.error("[AF] [Submit] Failed to make REST call in form {}", formContainerResourcePath, e);
-        } finally {
-            if (resourceResolver != null) {
-                resourceResolver.close();
-            }
         }
         return result;
     }
