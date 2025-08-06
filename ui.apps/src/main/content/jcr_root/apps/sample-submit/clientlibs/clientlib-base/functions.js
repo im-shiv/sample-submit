@@ -15,15 +15,15 @@
  ******************************************************************************/
 
 /**
- * Toggles the locale in the current URL between English and Afrikaans
- * @function getURL
+ * Returns URL for switching between English and Afrikaans languages
+ * @name getLanguageUrl Get Language URL
  * @description Modifies the current URL to switch between English (.en.html) and Afrikaans (.af.html) locales
  * @returns {string} The new URL with the toggled locale
  * @example
  * // Current URL: https://example.com/page.en.html
  * // Returns: https://example.com/page.af.html
  */
-function getURL() {
+function getLanguageUrl() {
     var url = new URL(window.location.href);
     var path = url.pathname;
     // Replace locale before .html (e.g., ".en.html", ".pt-br.html", or just ".html")
@@ -40,8 +40,9 @@ function getURL() {
 }
 
 /**
+ * @private
  * Stores the current form state to session storage
- * @function storeFormState
+ * @name storeFormState Store Form State
  * @description Retrieves form state using guideBridge.getGuideState() and stores it in sessionStorage
  * @returns {void}
  * @note Data is stored in sessionStorage with key 'formData guideContainerPath'
@@ -61,7 +62,7 @@ function storeFormState() {
 
 /**
  * Retrieves and applies form data from session storage
- * @function prefillDataFromSessionStorage
+ * @name prefillDataFromSessionStorage Prefill Data From Session Storage
  * @description Retrieves stored form data from sessionStorage and applies it to the current form
  * @returns {void}
  * @note Automatically clears stored data after retrieval
@@ -86,22 +87,23 @@ function prefillDataFromSessionStorage() {
 
 /**
  * Clears stored form data from session storage
- * @function clearSession
+ * @name clearSessionData Clear Session Data
  * @description Removes the 'formData guideContainerPath' key from sessionStorage
  * @returns {void}
  */
-function clearSession() {
-    autoSave.stop(); // Stop the polling before clearing session storage
+function clearSessionData() {
+    autoSave.stop();
     sessionStorage.removeItem(guideBridge.getAutoSaveInfo()['jcr:path']);
 }
 
 /**
+ * @private
  * Starts polling storeFormState() every 5 seconds
- * @function startFormStatePolling
+ * @name startAutoSave Start Auto Save
  * @description Creates a polling mechanism that calls storeFormState() every 5 seconds
  * @returns {Object} Object with stop() method to stop the polling
  */
-function startFormStatePolling() {
+function startAutoSave() {
     var intervalId = setInterval(function() {
         storeFormState();
     }, 5000); // 5 seconds
@@ -113,4 +115,4 @@ function startFormStatePolling() {
     };
 }
 
-var autoSave = startFormStatePolling();
+var autoSave = startAutoSave();
