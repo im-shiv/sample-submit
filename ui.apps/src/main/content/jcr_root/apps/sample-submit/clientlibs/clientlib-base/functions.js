@@ -16,20 +16,12 @@
 
 /**
  * Toggles the locale in the current URL between English and Afrikaans
- * Stores the current form state before navigation
- *
- * @description This function modifies the current URL to switch between English (.en.html)
- * and Afrikaans (.af.html) locales. It automatically stores the current form state
- * before performing the locale switch.
- *
+ * @function getURL
+ * @description Modifies the current URL to switch between English (.en.html) and Afrikaans (.af.html) locales
  * @returns {string} The new URL with the toggled locale
- *
  * @example
  * // Current URL: https://example.com/page.en.html
  * // Returns: https://example.com/page.af.html
- *
- * // Current URL: https://example.com/page.af.html
- * // Returns: https://example.com/page.en.html
  */
 function getURL() {
     var url = new URL(window.location.href);
@@ -49,14 +41,10 @@ function getURL() {
 
 /**
  * Stores the current form state to session storage
- *
- * @description This function retrieves the current form state using guideBridge.getGuideState()
- * and stores it in sessionStorage for later retrieval. The function is asynchronous
- * and uses callbacks to handle success and error scenarios.
- *
+ * @function storeFormState
+ * @description Retrieves form state using guideBridge.getGuideState() and stores it in sessionStorage
  * @returns {void}
- *
- * @note This function is asynchronous. The data is stored in sessionStorage with key 'formData guideContainerPath'
+ * @note Data is stored in sessionStorage with key 'formData guideContainerPath'
  */
 function storeFormState() {
     var jsonData;
@@ -73,14 +61,10 @@ function storeFormState() {
 
 /**
  * Retrieves and applies form data from session storage
- *
- * @description This function retrieves previously stored form data from sessionStorage
- * and applies it to the current form using guideBridge.setData(). After successful
- * retrieval, the stored data is automatically cleared from sessionStorage.
- *
+ * @function prefillDataFromSessionStorage
+ * @description Retrieves stored form data from sessionStorage and applies it to the current form
  * @returns {void}
- *
- * @note This function automatically clears the stored data after retrieval
+ * @note Automatically clears stored data after retrieval
  */
 function prefillDataFromSessionStorage() {
     const storedData = sessionStorage.getItem(guideBridge.getAutoSaveInfo()['jcr:path']);
@@ -102,15 +86,9 @@ function prefillDataFromSessionStorage() {
 
 /**
  * Clears stored form data from session storage
- *
- * @description This function removes the 'formData guideContainerPath' key from sessionStorage,
- * effectively clearing any previously stored form state.
- *
+ * @function clearSession
+ * @description Removes the 'formData guideContainerPath' key from sessionStorage
  * @returns {void}
- *
- * @example
- * // Clear stored form data
- * clearSession();
  */
 function clearSession() {
     autoSave.stop(); // Stop the polling before clearing session storage
@@ -119,20 +97,9 @@ function clearSession() {
 
 /**
  * Starts polling storeFormState() every 5 seconds
- *
- * @description This function creates a polling mechanism that calls storeFormState()
- * every 10 seconds to continuously save the current form state to session storage.
- *
+ * @function startFormStatePolling
+ * @description Creates a polling mechanism that calls storeFormState() every 5 seconds
  * @returns {Object} Object with stop() method to stop the polling
- *
- * @example
- * // Start polling
- * var formStatePoller = startFormStatePolling();
- *
- * // Stop polling when needed
- * formStatePoller.stop();
- *
- * @note The polling will continue until stop() is called
  */
 function startFormStatePolling() {
     var intervalId = setInterval(function() {
