@@ -13,7 +13,7 @@
  ~ See the License for the specific language governing permissions and
  ~ limitations under the License.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-package com.adobe.aemds.guide.addon.dor.service.impl;
+package com.sample.submit.core.service;
 
 import com.adobe.aemds.guide.model.FormSubmitInfo;
 import com.adobe.aemds.guide.service.FormSubmitActionService;
@@ -30,9 +30,6 @@ import com.adobe.forms.common.service.FileAttachmentWrapper;
 import com.adobe.granite.resourceresolverhelper.ResourceResolverHelper;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpPost;
@@ -47,6 +44,8 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.commons.json.JSONException;
 import org.apache.sling.commons.json.JSONObject;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -69,8 +68,7 @@ import java.util.Map;
  * @description Handles DoR PDF generation using XFA templates and submits form data to REST endpoints
  * @see FormSubmitActionService
  */
-@Component(immediate = true)
-@Service(FormSubmitActionService.class)
+@Component(service = FormSubmitActionService.class, immediate = true)
 public class NBCustomSubmitService implements FormSubmitActionService {
 
     private static final String serviceName = "NB_CUSTOM_SUBMIT";
